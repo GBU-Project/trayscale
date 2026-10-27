@@ -1,9 +1,16 @@
-Trayscale
-=========
+Trayscale (Fork with Auto Service Management)
+==============================================
 
 [![Go Report Card](https://goreportcard.com/badge/deedles.dev/trayscale)](https://goreportcard.com/report/deedles.dev/trayscale)
 
 Trayscale is an unofficial GUI interface for the Tailscale daemon, particularly for use on Linux, that provides many features that the official Linux client does not.
+
+> [!NOTE]
+> **Fork Highlights (Auto Service Lifecycle Management):**
+> Versi fork ini menambahkan integrasi kontrol `tailscaled.service` (systemd) secara otomatis:
+> - **Auto-Start saat ON:** Jika daemon `tailscaled.service` mati, mengaktifkan switch (ON) akan otomatis memanggil `pkexec systemctl start tailscaled.service` (dialog otentikasi Polkit desktop akan muncul) sebelum menghubungkan ke jaringan Tailscale.
+> - **Auto-Stop saat OFF:** Saat mematikan switch (OFF), Trayscale memutuskan koneksi (`tailscale down`) dan langsung menghentikan service `tailscaled.service` (`pkexec systemctl stop tailscaled.service`), memastikan tidak ada resource background yang aktif.
+> - *Persyaratan:* Memerlukan `systemd` dan `policykit-1` / `polkit` (`pkexec`). Fitur ini ditujukan untuk **Native Build**.
 
 _Disclaimer: This project is in a beta state. There may still be undiscovered bugs or compatibility issues. Use at your own risk._
 
@@ -16,30 +23,46 @@ Trayscale interfaces with the Tailscale daemon, `tailscaled`, to perform many of
 
 In Preferences, **Exit node selection** chooses what happens when **Use Exit Node** turns on: the previous exit node, or Tailscale's [recommended exit node](https://tailscale.com/docs/features/exit-nodes/auto-exit-nodes). The self page shows which exit node is in use and can open that node's page.
 
-Installation
-------------
+Building and Installation
+-------------------------
 
-<a href='https://flathub.org/apps/details/dev.deedles.Trayscale'><img width='240' alt='Download on Flathub' src='https://flathub.org/assets/badges/flathub-badge-en.svg'/></a>
+### 1. Requirements
 
-Note that the above config note about the current user being designated as an "operator" still applies to the Flatpak version of this app. However, the `tailscale` client is bundled into the Flatpak and thus does _not_ need to be in your `$PATH`.
+Pastikan dependensi sistem sudah terinstall:
 
-### AUR
+* **Go** >= 1.24
+* **GTK** >= 4.0
+* **Libadwaita** >= 1.6
+* **Polkit** (`pkexec`) dan **systemd**
 
-If you are on Arch Linux or a derivative, [Trayscale is available from the AUR](https://aur.archlinux.org/packages/trayscale).
+Di Ubuntu / Debian:
+```bash
+sudo apt update
+sudo apt install -y golang libgtk-4-dev libadwaita-1-dev policykit-1
+```
 
-### Manual
+### 2. Build & Install ke Menu Aplikasi
 
-First, make sure that you have dependencies installed:
-
-* Go >= 1.24
-* GTK >= 4.0
-* Libadwaita >= 1.9
-
-The main Trayscale binary can be installed with `go install`:
+Gunakan script `dist.sh` yang sudah disediakan untuk melakukan build dan instalasi otomatis ke direktori user (`~/.local`):
 
 ```bash
-$ go install deedles.dev/trayscale/cmd/trayscale@latest
+# 1. Build binary
+./dist.sh build v0.21.0-custom
+
+# 2. Install binary, icon, .desktop launcher, dan schema ke ~/.local
+./dist.sh install "$HOME/.local"
+
+# 3. Compile GSettings schema & perbarui database menu
+glib-compile-schemas "$HOME/.local/share/glib-2.0/schemas"
+update-desktop-database "$HOME/.local/share/applications"
+gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor"
 ```
+
+Setelah langkah di atas selesai, aplikasi **Trayscale** akan langsung muncul di menu aplikasi desktop Linux Anda.
+
+---
+
+### Alternative: Flathub & AUR (Upstream)
 
 If you would like, you can also copy the `.desktop` file, the icon, and other pieces of extra metadata into the places that they need to be put to function properly:
 
